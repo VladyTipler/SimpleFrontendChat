@@ -8,6 +8,13 @@ class AIChatInterface {
         this.artifactZoomLevel = 1;
         this.isTyping = false;
 
+        // Storage for artifacts to avoid HTML attribute length limits
+        this.artifacts = new Map();
+
+        // Resize state
+        this.isResizing = false;
+        this.artifactsPanelWidth = 400; // Default width
+
         // Settings with defaults
         this.settings = {
             webhookUrl: '',
@@ -32,6 +39,7 @@ class AIChatInterface {
         this.initMarkdown();
         this.bindEvents();
         this.loadSettings();
+        this.loadArtifactsPanelWidth();
         this.loadChats();
         this.createNewChat();
         this.updateSidebarToggle();
@@ -64,6 +72,7 @@ class AIChatInterface {
         this.artifactTitle = document.getElementById('artifactTitle');
         this.closeArtifactsBtn = document.getElementById('closeArtifactsBtn');
         this.fullscreenBtn = document.getElementById('fullscreenBtn');
+        this.artifactsResizeHandle = document.getElementById('artifactsResizeHandle');
 
         // Tab elements
         this.previewTab = document.getElementById('previewTab');
@@ -116,6 +125,9 @@ class AIChatInterface {
 
         // Toast container
         this.toastContainer = document.getElementById('toastContainer');
+
+        // Resize overlay
+        this.resizeOverlay = document.getElementById('resizeOverlay');
     }
 
     initMarkdown() {
@@ -155,6 +167,25 @@ class AIChatInterface {
         // Artifacts events
         this.closeArtifactsBtn?.addEventListener('click', () => this.closeArtifacts());
         this.fullscreenBtn?.addEventListener('click', () => this.toggleFullscreen());
+
+        // Resize events (mouse and touch)
+        this.artifactsResizeHandle?.addEventListener('mousedown', (e) => this.startPanelResize(e));
+        this.artifactsResizeHandle?.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            this.startPanelResize(e.touches[0]);
+        }, { passive: false });
+
+        // Global resize handling through overlay
+        this.resizeOverlay?.addEventListener('mousemove', (e) => this.handlePanelResize(e));
+        this.resizeOverlay?.addEventListener('touchmove', (e) => {
+            if (this.isResizing) {
+                e.preventDefault();
+                this.handlePanelResize(e.touches[0]);
+            }
+        }, { passive: false });
+
+        this.resizeOverlay?.addEventListener('mouseup', () => this.stopPanelResize());
+        this.resizeOverlay?.addEventListener('touchend', () => this.stopPanelResize());
 
         // Tab events
         this.previewTab?.addEventListener('click', () => this.switchTab('preview'));
@@ -275,10 +306,23 @@ class AIChatInterface {
                 this.sidebar.classList.remove('collapsed');
                 this.sidebar.classList.remove('open');
             }
+
+            // Reset artifacts panel on mobile
+            if (this.artifactsPanel && this.artifactsPanel.classList.contains('open')) {
+                this.artifactsPanel.style.width = '';
+                if (this.chatContainer) {
+                    this.chatContainer.style.marginRight = '';
+                }
+            }
         } else {
             // On desktop, remove mobile classes
             if (this.sidebar?.classList.contains('open')) {
                 this.sidebar.classList.remove('open');
+            }
+
+            // Restore artifacts panel width on desktop
+            if (this.artifactsPanel && this.artifactsPanel.classList.contains('open')) {
+                this.setArtifactsPanelWidth(this.artifactsPanelWidth);
             }
         }
     }
@@ -322,6 +366,9 @@ class AIChatInterface {
             this.loadChatMessages();
             this.updateChatTitle();
             this.closeArtifacts();
+
+            // Clear artifacts when clearing chat
+            this.artifacts.clear();
         }
     }
 
@@ -514,7 +561,8 @@ class AIChatInterface {
             messages: messages,
             max_tokens: this.settings.maxTokens,
             temperature: this.settings.temperature,
-            stream: this.settings.enableStreaming
+            stream: this.settings.enableStreaming,
+            chatId: this.currentChatId
         };
 
         const headers = {
@@ -611,68 +659,88 @@ class AIChatInterface {
             });
         }
 
-        // Update syntax highlighting
+        // Apply syntax highlighting to remaining code blocks (not artifacts)
         this.highlightCode(messageElement);
     }
 
     processMessageContent(content) {
-        // Detect artifacts BEFORE processing markdown
-        const artifacts = this.detectArtifacts(content);
+        // Process markdown but intercept code blocks before Prism.js processes them
+        const renderer = new marked.Renderer();
 
-        // Create a map to store placeholders for artifacts
-        const artifactPlaceholders = new Map();
+        // Override code rendering to capture clean code before HTML entities
+        renderer.code = (code, language) => {
+            // Clean the code (it's already clean at this point)
+            const cleanCode = code.trim();
+            const finalLanguage = language || this.detectLanguageFromCode(cleanCode);
 
-        // Replace code blocks with placeholders before markdown processing
-        let processedContent = content;
-        artifacts.forEach((artifact, index) => {
-            const placeholder = `__ARTIFACT_PLACEHOLDER_${index}__`;
-            const codeBlockPattern = new RegExp(`\`\`\`${artifact.language ? artifact.language + '\\s*\\n' : '[\\w]*\\s*\\n'}?${this.escapeRegex(artifact.code)}\`\`\``, 'g');
-            processedContent = processedContent.replace(codeBlockPattern, placeholder);
-            artifactPlaceholders.set(placeholder, artifact);
-        });
+            const isWorthy = this.isArtifactWorthy(cleanCode, finalLanguage);
 
-        // Process markdown
-        let html = marked.parse(processedContent);
+            if (isWorthy) {
+                const artifact = {
+                    type: this.getArtifactType(finalLanguage, cleanCode),
+                    language: finalLanguage,
+                    code: cleanCode,
+                    title: this.generateArtifactTitle(finalLanguage, cleanCode)
+                };
 
-        // Replace placeholders with artifact containers
-        artifactPlaceholders.forEach((artifact, placeholder) => {
-            const artifactId = `artifact-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-            const container = this.createArtifactContainer(artifact, artifactId);
-            html = html.replace(placeholder, container);
-        });
+                const artifactId = `artifact-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+                return this.createArtifactContainer(artifact, artifactId);
+            }
+
+            // Return standard code block if not artifact-worthy
+            return `<pre><code class="language-${finalLanguage}">${this.escapeHtml(cleanCode)}</code></pre>`;
+        };
+
+        // Process markdown with custom renderer
+        const html = marked.parse(content, { renderer });
 
         return html;
     }
 
-    detectArtifacts(content) {
-        const artifacts = [];
+    extractTextFromHtml(html) {
+        // Create a temporary element to extract text content
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = html;
 
-        // Enhanced regex to better handle code blocks
-        const codeBlockRegex = /```(\w+)?\s*\n?([\s\S]*?)```/g;
-        let match;
+        // Get text content, which will strip all HTML tags
+        let text = tempDiv.textContent || tempDiv.innerText || '';
 
-        while ((match = codeBlockRegex.exec(content)) !== null) {
-            const language = match[1] || 'plaintext';
-            const code = match[2].trim();
+        // Clean up any extra whitespace but preserve code formatting
+        text = text.replace(/^\s+|\s+$/g, ''); // Trim start/end
 
-            if (this.isArtifactWorthy(code, language)) {
-                artifacts.push({
-                    type: this.getArtifactType(language, code),
-                    language: language,
-                    code: code,
-                    title: this.generateArtifactTitle(language, code)
-                });
-            }
-        }
-
-        return artifacts;
+        return text;
     }
+
+    decodeHtml(html) {
+        // This function is now mainly for fallback - use extractTextFromHtml instead
+        const txt = document.createElement('textarea');
+        txt.innerHTML = html;
+        return txt.value;
+    }
+
+    detectLanguageFromCode(code) {
+        // Simple language detection based on content patterns
+        if (code.includes('<!DOCTYPE') || code.includes('<html>')) return 'html';
+        if (code.includes('function') && code.includes('{')) return 'javascript';
+        if (code.includes('const ') || code.includes('let ') || code.includes('var ')) return 'javascript';
+        if (code.includes('def ') && code.includes(':')) return 'python';
+        if (code.includes('public class') || code.includes('import java')) return 'java';
+        if (code.includes('#include') || code.includes('int main')) return 'cpp';
+        if (code.includes('<?php')) return 'php';
+        if (code.includes('package main') || code.includes('func main')) return 'go';
+        if (code.includes('fn main') || code.includes('use std::')) return 'rust';
+        if (code.includes('{') && code.includes('}') && code.includes(';')) return 'javascript';
+
+        return 'plaintext';
+    }
+
+    // Removed detectArtifacts function - now handled directly in processMessageContent
 
     isArtifactWorthy(code, language) {
         // More lenient criteria for artifacts
-        const minLength = 20; // Reduced minimum code length
+        const minLength = 10; // Reduced minimum code length
 
-        if (code.length < minLength) return false;
+        if (!code || code.trim().length < minLength) return false;
 
         // Always create artifacts for web technologies
         if (['html', 'css', 'javascript', 'js', 'typescript', 'ts', 'jsx', 'tsx'].includes(language.toLowerCase())) {
@@ -687,6 +755,21 @@ class AIChatInterface {
         // Always create artifacts for markup and data formats
         if (['xml', 'json', 'yaml', 'yml', 'sql', 'markdown', 'md'].includes(language.toLowerCase())) {
             return true;
+        }
+
+        // For plaintext, check if it looks like code
+        if (language.toLowerCase() === 'plaintext') {
+            const codeIndicators = [
+                'function', 'const', 'let', 'var', 'def', 'class', 'import', 'export',
+                'document.', 'console.', '<?php', '#!/', 'package', 'func', 'fn main',
+                '#include', 'using namespace', 'public static', 'private', 'protected'
+            ];
+
+            const looksLikeCode = codeIndicators.some(indicator =>
+                code.toLowerCase().includes(indicator.toLowerCase())
+            );
+
+            if (looksLikeCode) return true;
         }
 
         // For unknown languages, check for meaningful content
@@ -744,16 +827,16 @@ class AIChatInterface {
     }
 
     createArtifactContainer(artifact, artifactId) {
+        // Store artifact in Map to avoid HTML attribute length limits
+        this.artifacts.set(artifactId, artifact);
+
         const isWebCode = ['html', 'css', 'javascript', 'js', 'typescript', 'ts', 'jsx', 'tsx'].includes(artifact.language.toLowerCase());
         const isHtml = artifact.type === this.artifactTypes.HTML || artifact.language.toLowerCase() === 'html';
+        const isMarkdown = ['markdown', 'md'].includes(artifact.language.toLowerCase());
 
         return `
             <div class="artifact-container" 
-                 data-type="${artifact.type}" 
-                 data-language="${artifact.language}"
-                 data-title="${this.escapeHtml(artifact.title)}"
-                 data-content="${this.escapeHtml(artifact.code)}"
-                 data-id="${artifactId}">
+                 data-artifact-id="${artifactId}">
                 <div class="artifact-header">
                     <div class="artifact-info">
                         <i class="fas fa-${this.getArtifactIcon(artifact.type)}"></i>
@@ -769,7 +852,7 @@ class AIChatInterface {
                             <i class="fas fa-play"></i>
                         </button>
                         ` : ''}
-                        ${isHtml ? `
+                        ${(isHtml || isMarkdown) ? `
                         <button class="artifact-btn preview-artifact-btn" title="Предпросмотр">
                             <i class="fas fa-eye"></i>
                         </button>
@@ -839,36 +922,25 @@ class AIChatInterface {
         }
     }
 
+    getArtifactFromContainer(container) {
+        const artifactId = container.dataset.artifactId;
+        return this.artifacts.get(artifactId);
+    }
+
     openArtifact(container) {
-        const type = container.dataset.type;
-        const language = container.dataset.language;
-        const title = container.dataset.title;
-        const content = container.dataset.content;
+        const artifact = this.getArtifactFromContainer(container);
+        if (!artifact) return;
 
-        this.currentArtifact = {
-            type,
-            language,
-            title,
-            content
-        };
-
+        this.currentArtifact = artifact;
         this.showArtifacts();
         this.loadArtifact();
     }
 
     openArtifactInPlayground(container) {
-        const type = container.dataset.type;
-        const language = container.dataset.language;
-        const title = container.dataset.title;
-        const content = container.dataset.content;
+        const artifact = this.getArtifactFromContainer(container);
+        if (!artifact) return;
 
-        this.currentArtifact = {
-            type,
-            language,
-            title,
-            content
-        };
-
+        this.currentArtifact = artifact;
         this.showArtifacts();
         this.loadArtifact();
         this.switchTab('playground');
@@ -877,18 +949,10 @@ class AIChatInterface {
     }
 
     openArtifactInPreview(container) {
-        const type = container.dataset.type;
-        const language = container.dataset.language;
-        const title = container.dataset.title;
-        const content = container.dataset.content;
+        const artifact = this.getArtifactFromContainer(container);
+        if (!artifact) return;
 
-        this.currentArtifact = {
-            type,
-            language,
-            title,
-            content
-        };
-
+        this.currentArtifact = artifact;
         this.showArtifacts();
         this.loadArtifact();
         this.switchTab('preview');
@@ -897,8 +961,10 @@ class AIChatInterface {
     }
 
     copyArtifact(container) {
-        const content = container.dataset.content;
-        this.copyToClipboard(content);
+        const artifact = this.getArtifactFromContainer(container);
+        if (!artifact) return;
+
+        this.copyToClipboard(artifact.code);
         this.showToast('Код скопирован в буфер обмена', 'success');
     }
 
@@ -906,29 +972,143 @@ class AIChatInterface {
         if (this.artifactsPanel) {
             this.artifactsPanel.classList.add('open');
             this.chatContainer?.classList.add('with-artifacts');
+
+            // Apply saved width
+            this.setArtifactsPanelWidth(this.artifactsPanelWidth);
         }
     }
 
     closeArtifacts() {
         if (this.artifactsPanel) {
             this.artifactsPanel.classList.remove('open', 'fullscreen');
-            this.chatContainer?.classList.remove('with-artifacts');
+            this.chatContainer?.classList.remove('with-artifacts', 'with-artifacts-fullscreen');
+
+            // Reset all inline styles to ensure clean state
+            this.artifactsPanel.style.width = '';
+            if (this.chatContainer) {
+                this.chatContainer.style.marginRight = '';
+            }
+
+            // Hide all preview elements
+            this.hideAllPreviewElements();
         }
         this.currentArtifact = null;
     }
 
     toggleFullscreen() {
         if (this.artifactsPanel) {
-            this.artifactsPanel.classList.toggle('fullscreen');
+            const isFullscreen = this.artifactsPanel.classList.contains('fullscreen');
+
+            if (isFullscreen) {
+                // Exit fullscreen
+                this.artifactsPanel.classList.remove('fullscreen');
+                this.chatContainer?.classList.remove('with-artifacts-fullscreen');
+                this.setArtifactsPanelWidth(this.artifactsPanelWidth);
+            } else {
+                // Enter fullscreen
+                this.artifactsPanel.classList.add('fullscreen');
+                this.chatContainer?.classList.add('with-artifacts-fullscreen');
+                // Reset inline styles for fullscreen
+                this.artifactsPanel.style.width = '';
+                if (this.chatContainer) {
+                    this.chatContainer.style.marginRight = '';
+                }
+            }
 
             const icon = this.fullscreenBtn?.querySelector('i');
             if (icon) {
-                if (this.artifactsPanel.classList.contains('fullscreen')) {
-                    icon.className = 'fas fa-compress';
-                } else {
+                if (isFullscreen) {
                     icon.className = 'fas fa-expand';
+                } else {
+                    icon.className = 'fas fa-compress';
                 }
             }
+        }
+    }
+
+    // Panel resize functionality
+    startPanelResize(e) {
+        e.preventDefault();
+        this.isResizing = true;
+
+        if (this.artifactsResizeHandle) {
+            this.artifactsResizeHandle.classList.add('dragging');
+        }
+
+        // Activate resize overlay
+        if (this.resizeOverlay) {
+            this.resizeOverlay.classList.add('active');
+        }
+
+        document.body.classList.add('resizing');
+    }
+
+    handlePanelResize(e) {
+        if (!this.isResizing || !this.artifactsPanel) return;
+
+        e.preventDefault();
+
+        const clientX = e.clientX || e.pageX;
+        const newWidth = window.innerWidth - clientX;
+
+        // Constrain width
+        const minWidth = 300;
+        const maxWidth = window.innerWidth * 0.8;
+        const constrainedWidth = Math.min(Math.max(newWidth, minWidth), maxWidth);
+
+        this.setArtifactsPanelWidth(constrainedWidth);
+        this.artifactsPanelWidth = constrainedWidth;
+    }
+
+    stopPanelResize() {
+        if (!this.isResizing) return;
+
+        this.isResizing = false;
+
+        if (this.artifactsResizeHandle) {
+            this.artifactsResizeHandle.classList.remove('dragging');
+        }
+
+        // Deactivate resize overlay
+        if (this.resizeOverlay) {
+            this.resizeOverlay.classList.remove('active');
+        }
+
+        document.body.classList.remove('resizing');
+
+        // Save width to localStorage
+        try {
+            localStorage.setItem('artifactsPanelWidth', this.artifactsPanelWidth.toString());
+        } catch (error) {
+            console.warn('Failed to save panel width:', error);
+        }
+    }
+
+    setArtifactsPanelWidth(width) {
+        if (!this.artifactsPanel ||
+            this.artifactsPanel.classList.contains('fullscreen') ||
+            window.innerWidth <= 768) {
+            return;
+        }
+
+        this.artifactsPanel.style.width = `${width}px`;
+
+        if (this.chatContainer && this.artifactsPanel.classList.contains('open')) {
+            this.chatContainer.style.marginRight = `${width}px`;
+        }
+    }
+
+    loadArtifactsPanelWidth() {
+        try {
+            const savedWidth = localStorage.getItem('artifactsPanelWidth');
+            if (savedWidth) {
+                this.artifactsPanelWidth = parseInt(savedWidth, 10);
+                if (isNaN(this.artifactsPanelWidth) || this.artifactsPanelWidth < 300) {
+                    this.artifactsPanelWidth = 400;
+                }
+            }
+        } catch (error) {
+            console.warn('Failed to load panel width:', error);
         }
     }
 
@@ -943,15 +1123,20 @@ class AIChatInterface {
         this.loadCodeEditor();
 
         // Load into appropriate preview
-        if (this.currentArtifact.type === this.artifactTypes.HTML || this.currentArtifact.language.toLowerCase() === 'html') {
+        const language = this.currentArtifact.language.toLowerCase();
+
+        if (this.currentArtifact.type === this.artifactTypes.HTML || language === 'html') {
             this.loadHTMLPreview();
+            this.switchTab('preview');
+        } else if (['markdown', 'md'].includes(language)) {
+            this.loadMarkdownPreview();
             this.switchTab('preview');
         } else {
             this.switchTab('code');
         }
 
         // Load into playground if it's web code
-        const isWebCode = ['html', 'css', 'javascript', 'js', 'typescript', 'ts', 'jsx', 'tsx'].includes(this.currentArtifact.language.toLowerCase());
+        const isWebCode = ['html', 'css', 'javascript', 'js', 'typescript', 'ts', 'jsx', 'tsx'].includes(language);
         if (isWebCode) {
             this.loadIntoPlayground();
         }
@@ -962,7 +1147,7 @@ class AIChatInterface {
 
         const codeElement = this.codeEditor.querySelector('code');
         if (codeElement) {
-            codeElement.textContent = this.currentArtifact.content;
+            codeElement.textContent = this.currentArtifact.code;
             codeElement.className = `language-${this.currentArtifact.language}`;
         }
 
@@ -973,22 +1158,72 @@ class AIChatInterface {
         this.highlightCode(this.codeEditor);
     }
 
+    loadMarkdownPreview() {
+        if (!this.previewContent || !this.currentArtifact) return;
+
+        // Hide ALL other preview elements completely
+        this.hideAllPreviewElements();
+
+        // Create or get markdown preview container
+        let markdownContainer = this.previewContent.querySelector('.markdown-preview');
+        let previewContainer = this.previewContent.querySelector('.preview-container');
+        if (!markdownContainer) {
+            markdownContainer = document.createElement('div');
+            markdownContainer.className = 'markdown-preview';
+            previewContainer.appendChild(markdownContainer);
+        }
+
+        // Show only markdown preview
+        markdownContainer.style.display = 'flex';
+        markdownContainer.style.flex = '1';
+
+        // Convert markdown to HTML
+        try {
+            const html = marked.parse(this.currentArtifact.code);
+            markdownContainer.innerHTML = html;
+
+            // Apply syntax highlighting to code blocks in markdown
+            this.highlightCode(markdownContainer);
+        } catch (error) {
+            markdownContainer.innerHTML = `
+                <div style="color: #e53e3e; padding: 20px; background: #fed7d7; border-radius: 6px; margin: 20px;">
+                    <strong>Ошибка при обработке Markdown:</strong><br>
+                    ${this.escapeHtml(error.message)}
+                </div>
+            `;
+        }
+    }
+
     loadHTMLPreview() {
         if (!this.previewFrame || !this.currentArtifact) return;
 
-        let content = this.currentArtifact.content;
+        // Hide ALL other preview elements completely
+        this.hideAllPreviewElements();
+
+        // Show only iframe preview
+        this.previewFrame.style.display = 'block';
+        this.previewFrame.style.flex = '1';
+
+        let content = this.currentArtifact.code;
 
         // If it's not a complete HTML document, wrap it
         if (!content.includes('<!DOCTYPE') && !content.includes('<html>')) {
             content = `
                 <!DOCTYPE html>
-                <html>
+                <html lang="ru">
                 <head>
                     <meta charset="UTF-8">
                     <meta name="viewport" content="width=device-width, initial-scale=1.0">
                     <title>Preview</title>
                     <style>
-                        body { margin: 0; padding: 20px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+                        body { 
+                            margin: 0; 
+                            padding: 20px; 
+                            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                            background: white;
+                            color: #333;
+                            line-height: 1.6;
+                        }
                     </style>
                 </head>
                 <body>
@@ -1001,26 +1236,58 @@ class AIChatInterface {
         const blob = new Blob([content], { type: 'text/html' });
         const url = URL.createObjectURL(blob);
         this.previewFrame.src = url;
+
+        // Clean up the URL after some time
+        setTimeout(() => {
+            URL.revokeObjectURL(url);
+        }, 10000);
+    }
+
+    hideAllPreviewElements() {
+        // Hide iframe
+        if (this.previewFrame) {
+            this.previewFrame.style.display = 'none';
+            this.previewFrame.style.flex = 'none';
+        }
+
+        // Hide markdown preview
+        const markdownContainer = this.previewContent?.querySelector('.markdown-preview');
+        if (markdownContainer) {
+            markdownContainer.style.display = 'none';
+            markdownContainer.style.flex = 'none';
+        }
+
+        // Hide image preview
+        if (this.imagePreview) {
+            this.imagePreview.style.display = 'none';
+            this.imagePreview.style.flex = 'none';
+        }
+
+        // Hide media preview
+        if (this.mediaPreview) {
+            this.mediaPreview.style.display = 'none';
+            this.mediaPreview.style.flex = 'none';
+        }
     }
 
     loadIntoPlayground() {
         if (!this.currentArtifact) return;
 
-        const { language, content } = this.currentArtifact;
+        const { language, code } = this.currentArtifact;
         const lang = language.toLowerCase();
 
         if (lang === 'html') {
             const htmlTextarea = this.htmlEditor?.querySelector('textarea');
-            if (htmlTextarea) htmlTextarea.value = content;
+            if (htmlTextarea) htmlTextarea.value = code;
         } else if (lang === 'css') {
             const cssTextarea = this.cssEditor?.querySelector('textarea');
-            if (cssTextarea) cssTextarea.value = content;
+            if (cssTextarea) cssTextarea.value = code;
         } else if (['javascript', 'js', 'jsx'].includes(lang)) {
             const jsTextarea = this.jsEditor?.querySelector('textarea');
-            if (jsTextarea) jsTextarea.value = content;
+            if (jsTextarea) jsTextarea.value = code;
         } else if (['typescript', 'ts', 'tsx'].includes(lang)) {
             const tsTextarea = this.tsEditor?.querySelector('textarea');
-            if (tsTextarea) tsTextarea.value = content;
+            if (tsTextarea) tsTextarea.value = code;
         }
     }
 
@@ -1042,6 +1309,28 @@ class AIChatInterface {
         const targetContent = document.getElementById(`${tabName}Content`);
         if (targetContent) {
             targetContent.classList.add('active');
+        }
+
+        // Handle preview tab visibility for different content types
+        if (tabName === 'preview' && this.currentArtifact) {
+            const language = this.currentArtifact.language.toLowerCase();
+
+            // Hide all preview elements first
+            this.hideAllPreviewElements();
+
+            // Show appropriate preview based on content type
+            if (this.currentArtifact.type === this.artifactTypes.HTML || language === 'html') {
+                if (this.previewFrame) {
+                    this.previewFrame.style.display = 'block';
+                    this.previewFrame.style.flex = '1';
+                }
+            } else if (['markdown', 'md'].includes(language)) {
+                const markdownContainer = this.previewContent?.querySelector('.markdown-preview');
+                if (markdownContainer) {
+                    markdownContainer.style.display = 'flex';
+                    markdownContainer.style.flex = '1';
+                }
+            }
         }
     }
 
@@ -1394,7 +1683,7 @@ class AIChatInterface {
     // Code functionality
     copyCode() {
         if (this.currentArtifact) {
-            this.copyToClipboard(this.currentArtifact.content);
+            this.copyToClipboard(this.currentArtifact.code);
             this.showToast('Код скопирован в буфер обмена', 'success');
         }
     }
@@ -1402,7 +1691,7 @@ class AIChatInterface {
     downloadArtifact() {
         if (!this.currentArtifact) return;
 
-        const { content, language, title } = this.currentArtifact;
+        const { code, language, title } = this.currentArtifact;
         const extensions = {
             javascript: 'js',
             js: 'js',
@@ -1440,7 +1729,7 @@ class AIChatInterface {
         const extension = extensions[language.toLowerCase()] || 'txt';
         const filename = `${title.replace(/[^a-zA-Z0-9]/g, '_')}.${extension}`;
 
-        const blob = new Blob([content], { type: 'text/plain' });
+        const blob = new Blob([code], { type: 'text/plain' });
         const url = URL.createObjectURL(blob);
 
         const a = document.createElement('a');
