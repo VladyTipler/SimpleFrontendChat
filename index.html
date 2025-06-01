@@ -5,10 +5,40 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI Chat Assistant</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Load Prism CSS without default theme to avoid conflicts -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css">
+    <style>
+        /* Override Prism.js text shadows globally */
+        .token {
+            text-shadow: none !important;
+        }
+        pre[class*="language-"],
+        code[class*="language-"] {
+            text-shadow: none !important;
+        }
+        /* Ensure proper loading state */
+        #app {
+            height: 100vh;
+            width: 100vw;
+        }
+        /* Loading spinner */
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            color: #4f46e5;
+        }
+    </style>
 </head>
 <body>
-    <div id="app"></div>
+    <div id="app">
+        <div class="loading">
+            <i class="fas fa-robot" style="font-size: 48px; margin-right: 16px;"></i>
+            <span>Загрузка AI Assistant...</span>
+        </div>
+    </div>
     <script type="module" src="/src/main.js"></script>
 </body>
 </html>

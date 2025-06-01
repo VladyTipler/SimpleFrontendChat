@@ -11,9 +11,12 @@
                 <i class="fas fa-robot"></i>
                 AI Assistant
             </h2>
-            <button class="toggle-sidebar" @click="$emit('close')">
-                <i class="fas fa-times"></i>
-            </button>
+            <div class="header-controls">
+                <ThemeSwitcher />
+                <button class="toggle-sidebar" @click="$emit('close')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
         </div>
 
         <div class="sidebar-content">
@@ -58,6 +61,7 @@
 
 <script setup>
 import { computed } from 'vue'
+import ThemeSwitcher from './ThemeSwitcher.vue'
 
 const props = defineProps({
     isOpen: Boolean,
@@ -149,11 +153,21 @@ const formatDate = (date) => {
         align-items: center;
         gap: $space-sm;
         white-space: nowrap;
+        flex: 1;
+        min-width: 0;
 
         i {
             color: $color-primary;
+            flex-shrink: 0;
         }
     }
+}
+
+.header-controls {
+    display: flex;
+    align-items: center;
+    gap: $space-xs;
+    flex-shrink: 0;
 }
 
 .toggle-sidebar {

@@ -1,4 +1,5 @@
 import { marked } from 'marked'
+import { nextTick } from 'vue'
 
 export function useArtifactDetection({ onArtifactAction }) {
   const artifactTypes = {
@@ -22,7 +23,7 @@ export function useArtifactDetection({ onArtifactAction }) {
     renderer.code = (code, language) => {
       const cleanCode = code.trim()
       const finalLanguage = language || detectLanguageFromCode(cleanCode)
-      
+
       const isWorthy = isArtifactWorthy(cleanCode, finalLanguage)
 
       if (isWorthy) {
@@ -35,7 +36,7 @@ export function useArtifactDetection({ onArtifactAction }) {
 
         const artifactId = `artifact-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
         artifacts.set(artifactId, artifact)
-        
+
         return createArtifactContainer(artifact, artifactId)
       }
 
@@ -44,7 +45,16 @@ export function useArtifactDetection({ onArtifactAction }) {
     }
 
     // Process markdown with custom renderer
-    return marked.parse(content, { renderer })
+    const processedContent = marked.parse(content, { renderer })
+
+    // Trigger syntax highlighting after DOM updates
+    nextTick(() => {
+      if (window.Prism) {
+        window.Prism.highlightAll()
+      }
+    })
+
+    return processedContent
   }
 
   const detectLanguageFromCode = (code) => {
@@ -92,7 +102,7 @@ export function useArtifactDetection({ onArtifactAction }) {
       ]
 
       const looksLikeCode = codeIndicators.some(indicator =>
-        code.toLowerCase().includes(indicator.toLowerCase())
+          code.toLowerCase().includes(indicator.toLowerCase())
       )
 
       if (looksLikeCode) return true
@@ -185,7 +195,7 @@ export function useArtifactDetection({ onArtifactAction }) {
           </div>
         </div>
         <div class="artifact-preview">
-          <pre><code class="language-${artifact.language}">${escapeHtml(artifact.code)}</code></pre>
+          <pre><code class="language-${artifact.language}" style="text-shadow: none !important;">${escapeHtml(artifact.code)}</code></pre>
         </div>
       </div>
     `

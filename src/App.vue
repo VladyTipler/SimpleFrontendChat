@@ -1,3 +1,4 @@
+<!-- src/App.vue -->
 <template>
     <div class="app-container">
         <!-- Floating Sidebar Toggle for Desktop -->
@@ -30,6 +31,7 @@
                 :uploaded-files="uploadedFiles"
                 :is-typing="isTyping"
                 :artifacts-open="artifactsOpen"
+                :artifacts-fullscreen="artifactsFullscreen"
                 @send-message="sendMessage"
                 @clear-chat="clearCurrentChat"
                 @file-upload="handleFileUpload"
@@ -61,6 +63,11 @@
         <!-- Toast notifications -->
         <ToastContainer :toasts="toasts" @remove="removeToast" />
 
+        <!-- Theme Switcher -->
+        <div class="theme-switcher-container">
+            <ThemeSwitcher />
+        </div>
+
         <!-- Resize overlay -->
         <div
             class="resize-overlay"
@@ -77,6 +84,7 @@ import ChatContainer from './components/ChatContainer.vue'
 import ArtifactsPanel from './components/ArtifactsPanel.vue'
 import SettingsModal from './components/SettingsModal.vue'
 import ToastContainer from './components/ToastContainer.vue'
+import ThemeSwitcher from './components/ThemeSwitcher.vue'
 import { useChatStore } from './composables/useChatStore'
 import { useArtifacts } from './composables/useArtifacts'
 import { useToasts } from './composables/useToasts'
@@ -265,3 +273,27 @@ onMounted(() => {
     }
 })
 </script>
+
+<style lang="scss" scoped>
+.main-content {
+    flex: 1;
+    display: flex;
+    background: $bg-page;
+    overflow: hidden;
+    transition: margin-right $transition-normal;
+    min-width: 0;
+    position: relative;
+}
+
+.theme-switcher-container {
+    position: fixed;
+    top: 18px;
+    right: 18px;
+    z-index: 1000;
+
+    @media (max-width: $breakpoint-mobile) {
+        top: 12px;
+        right: 12px;
+    }
+}
+</style>

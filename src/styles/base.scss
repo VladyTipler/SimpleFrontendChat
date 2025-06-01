@@ -41,7 +41,7 @@ button {
 input, textarea, select {
   font-family: inherit;
   font-size: inherit;
-  
+
   &:focus {
     outline: none;
   }
@@ -60,7 +60,7 @@ input, textarea, select {
 ::-webkit-scrollbar-thumb {
   background: $border-medium;
   border-radius: $radius-full;
-  
+
   &:hover {
     background: $text-tertiary;
   }
@@ -76,13 +76,13 @@ input, textarea, select {
 a {
   color: $color-primary;
   text-decoration: none;
-  
+
   &:hover {
     text-decoration: underline;
   }
 }
 
-// Code styles
+// Code styles - REMOVE 3D EFFECTS
 code {
   font-family: $font-mono;
   font-size: 0.875em;
@@ -90,6 +90,7 @@ code {
   padding: 0.2em 0.4em;
   border-radius: $radius-sm;
   color: $color-error;
+  text-shadow: none !important; // Remove 3D effect
 }
 
 pre {
@@ -99,11 +100,85 @@ pre {
   border-radius: $radius-md;
   overflow-x: auto;
   margin: $space-md 0;
-  
+  text-shadow: none !important; // Remove 3D effect
+
   code {
     background: none;
     padding: 0;
     color: $text-primary;
+    text-shadow: none !important; // Remove 3D effect
+  }
+}
+
+// Global code token styles - REMOVE ALL TEXT-SHADOW
+.token {
+  text-shadow: none !important;
+}
+
+// Prism.js override styles - CLEAN FLAT DESIGN
+.code-editor {
+  .token.comment,
+  .token.prolog,
+  .token.doctype,
+  .token.cdata {
+    color: #708090;
+    font-style: italic;
+    text-shadow: none !important;
+  }
+
+  .token.punctuation {
+    color: #999999;
+    text-shadow: none !important;
+  }
+
+  .token.property,
+  .token.tag,
+  .token.boolean,
+  .token.number,
+  .token.constant,
+  .token.symbol,
+  .token.deleted {
+    color: #905;
+    text-shadow: none !important;
+  }
+
+  .token.selector,
+  .token.attr-name,
+  .token.string,
+  .token.char,
+  .token.builtin,
+  .token.inserted {
+    color: #690;
+    text-shadow: none !important;
+  }
+
+  .token.operator,
+  .token.entity,
+  .token.url,
+  .language-css .token.string,
+  .style .token.string {
+    color: #9a6e3a;
+    text-shadow: none !important;
+  }
+
+  .token.atrule,
+  .token.attr-value,
+  .token.keyword {
+    color: #07a;
+    text-shadow: none !important;
+  }
+
+  .token.function,
+  .token.class-name {
+    color: #dd4a68;
+    text-shadow: none !important;
+  }
+
+  .token.regex,
+  .token.important,
+  .token.variable {
+    color: #e90;
+    text-shadow: none !important;
   }
 }
 
