@@ -1,3 +1,4 @@
+<!-- src/components/ChatContainer.vue -->
 <template>
     <div
         class="chat-container"
@@ -8,7 +9,11 @@
     >
         <!-- Chat Header -->
         <div class="chat-header">
-            <button class="sidebar-toggle-mobile" @click="$emit('toggle-sidebar')">
+            <button
+                class="sidebar-toggle-mobile"
+                @click="handleSidebarToggle"
+                @touchstart="handleSidebarToggle"
+            >
                 <i class="fas fa-bars"></i>
             </button>
             <h3>{{ currentChat?.title || 'AI Assistant' }}</h3>
@@ -86,6 +91,22 @@ const handleSend = (content) => {
     emit('send-message', content, props.uploadedFiles)
 }
 
+const handleSidebarToggle = (event) => {
+    // Prevent event bubbling and default behavior
+    event.preventDefault()
+    event.stopPropagation()
+
+    console.log('Sidebar toggle clicked')
+
+    // Add haptic feedback on mobile devices
+    if ('vibrate' in navigator) {
+        navigator.vibrate(50)
+    }
+
+    // Emit the toggle event
+    emit('toggle-sidebar')
+}
+
 const scrollToBottom = () => {
     if (messagesContainer.value) {
         nextTick(() => {
@@ -129,7 +150,7 @@ watch(
     }
 
     &.with-artifacts {
-        @media (min-width: $breakpoint-mobile + 1px) {
+        @media (min-width: ($breakpoint-mobile + 1px)) {
             margin-right: 400px;
         }
     }
@@ -144,6 +165,7 @@ watch(
     background: $bg-main;
     height: 64px;
     flex-shrink: 0;
+    position: relative;
 
     h3 {
         font-size: 18px;
@@ -152,6 +174,10 @@ watch(
         flex: 1;
         text-align: center;
         margin: 0;
+
+        @media (max-width: $breakpoint-mobile) {
+            margin-left: 48px; // Account for sidebar toggle button
+        }
     }
 }
 
@@ -160,20 +186,42 @@ watch(
     background: none;
     border: none;
     color: $text-tertiary;
-    font-size: 18px;
+    font-size: 20px;
     cursor: pointer;
-    padding: $space-sm;
+    padding: $space-md;
     border-radius: $radius-md;
     transition: all $transition-fast;
+    position: absolute;
+    left: $space-lg;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 10;
+    min-width: 44px; // Minimum touch target size
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 
     &:hover {
         background: $bg-code;
         color: $text-primary;
     }
 
-    @media (max-width: $breakpoint-mobile) {
-        display: block;
+    &:active {
+        background: $color-primary;
+        color: white;
+        transform: translateY(-50%) scale(0.95);
     }
+
+    @media (max-width: $breakpoint-mobile) {
+        display: flex;
+    }
+
+    // Ensure touch events work properly
+    touch-action: manipulation;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
 }
 
 .chat-messages {
@@ -181,6 +229,15 @@ watch(
     overflow-y: auto;
     padding: $space-2xl;
     scroll-behavior: smooth;
+
+    // Improve scrolling on mobile
+    -webkit-overflow-scrolling: touch;
+
+    @media (max-width: $breakpoint-mobile) {
+        padding: $space-lg;
+        // Добавляем отступ снизу чтобы контент не скрывался за полем ввода
+        padding-bottom: calc($space-2xl + env(safe-area-inset-bottom, 80px));
+    }
 }
 
 .typing-indicator {
@@ -262,6 +319,18 @@ watch(
         &.hidden-fullscreen {
             display: none;
         }
+    }
+
+    .chat-header {
+        padding: $space-lg;
+    }
+
+    .chat-messages {
+        padding: $space-lg;
+    }
+
+    .typing-indicator {
+        padding: 0 $space-lg;
     }
 }
 </style>
