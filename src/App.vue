@@ -1,4 +1,3 @@
-<!-- src/App.vue -->
 <template>
     <div class="app-container">
         <!-- Floating Sidebar Toggle for Desktop -->
@@ -33,7 +32,6 @@
                 :artifacts-open="artifactsOpen"
                 :artifacts-fullscreen="artifactsFullscreen"
                 @send-message="sendMessage"
-                @clear-chat="clearCurrentChat"
                 @file-upload="handleFileUpload"
                 @remove-file="removeFile"
                 @open-artifact="openArtifact"

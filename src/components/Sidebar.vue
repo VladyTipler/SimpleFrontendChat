@@ -41,7 +41,7 @@
                     </div>
                     <button
                         class="delete-chat-btn"
-                        @click="$emit('delete-chat', chat.id)"
+                        @click.stop="$emit('delete-chat', chat.id)"
                         title="Удалить чат"
                     >
                         <i class="fas fa-trash"></i>
@@ -243,6 +243,8 @@ const formatDate = (date) => {
 
         .delete-chat-btn {
             opacity: 1;
+            background: rgba(239, 68, 68, 0.1);
+            color: $color-error;
         }
     }
 
@@ -252,6 +254,10 @@ const formatDate = (date) => {
         .chat-title {
             color: $color-primary;
             font-weight: 500;
+        }
+
+        .delete-chat-btn {
+            opacity: 0.7;
         }
     }
 }
@@ -285,14 +291,29 @@ const formatDate = (date) => {
     cursor: pointer;
     padding: $space-sm;
     border-radius: $radius-sm;
-    opacity: 0;
+    opacity: 0.5; /* Always visible but semi-transparent */
     transition: all $transition-fast;
     margin-right: $space-sm;
     flex-shrink: 0;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 
     &:hover {
+        opacity: 1 !important;
         color: $color-error;
-        background: #fef2f2;
+        background: rgba(239, 68, 68, 0.1);
+        transform: scale(1.1);
+    }
+
+    &:active {
+        transform: scale(0.95);
+    }
+
+    i {
+        font-size: 12px;
     }
 }
 

@@ -12,15 +12,6 @@
                 <i class="fas fa-bars"></i>
             </button>
             <h3>{{ currentChat?.title || 'AI Assistant' }}</h3>
-            <div class="chat-controls">
-                <button
-                    class="clear-chat-btn"
-                    @click="$emit('clear-chat')"
-                    title="Очистить чат"
-                >
-                    <i class="fas fa-trash"></i>
-                </button>
-            </div>
         </div>
 
         <!-- Messages container -->
@@ -158,6 +149,9 @@ watch(
         font-size: 18px;
         font-weight: 600;
         color: $text-primary;
+        flex: 1;
+        text-align: center;
+        margin: 0;
     }
 }
 
@@ -179,26 +173,6 @@ watch(
 
     @media (max-width: $breakpoint-mobile) {
         display: block;
-    }
-}
-
-.chat-controls {
-    display: flex;
-    gap: $space-sm;
-}
-
-.clear-chat-btn {
-    background: none;
-    border: none;
-    color: $text-tertiary;
-    cursor: pointer;
-    padding: $space-sm;
-    border-radius: $radius-md;
-    transition: all $transition-fast;
-
-    &:hover {
-        background: $bg-code;
-        color: $color-error;
     }
 }
 
