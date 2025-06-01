@@ -1,0 +1,271 @@
+@use 'variables' as *;
+
+// Mobile Styles
+@media (max-width: $breakpoint-mobile) {
+  .chat-messages {
+    padding: $space-lg;
+  }
+
+  .input-container {
+    padding: $space-md;
+  }
+
+  .message-content {
+    max-width: 85%;
+    padding: $space-md;
+  }
+
+  .feature-highlights {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .toast-container {
+    top: $space-md;
+    right: $space-md;
+    left: $space-md;
+  }
+
+  .toast {
+    min-width: auto;
+  }
+
+  .artifacts-panel {
+    width: 100vw;
+
+    .artifacts-resize-handle {
+      display: none;
+    }
+  }
+
+  .chat-container.with-artifacts {
+    margin-right: 0;
+  }
+
+  .playground-editors {
+    height: 150px;
+  }
+}
+
+// Small Mobile Styles
+@media (max-width: 480px) {
+  .chat-messages {
+    padding: $space-lg;
+  }
+
+  .input-container {
+    padding: $space-md;
+  }
+
+  .message-content {
+    max-width: 90%;
+    padding: $space-md;
+  }
+
+  .feature-highlights {
+    grid-template-columns: 1fr;
+  }
+
+  .playground-editors {
+    height: 150px;
+  }
+
+  .welcome-message {
+    padding: 40px $space-lg;
+
+    h2 {
+      font-size: 24px;
+    }
+
+    p {
+      font-size: 14px;
+    }
+  }
+
+  .welcome-icon {
+    width: 48px;
+    height: 48px;
+    font-size: 20px;
+    margin-bottom: $space-lg;
+  }
+
+  .modal-content {
+    width: 95%;
+    margin: $space-md;
+  }
+
+  .modal-body {
+    padding: $space-lg;
+  }
+
+  .modal-header,
+  .modal-footer {
+    padding: $space-lg;
+  }
+
+  .form-group {
+    margin-bottom: $space-lg;
+  }
+
+  .artifact-container {
+    margin: $space-sm 0;
+  }
+
+  .artifact-header {
+    padding: $space-sm $space-md;
+    flex-wrap: wrap;
+    gap: $space-sm;
+  }
+
+  .artifact-actions {
+    gap: $space-xs;
+  }
+
+  .artifact-btn {
+    width: 24px;
+    height: 24px;
+    font-size: 12px;
+  }
+
+  .sidebar-header {
+    padding: $space-md $space-lg;
+
+    h2 {
+      font-size: 16px;
+    }
+  }
+
+  .sidebar-content {
+    padding: $space-md;
+  }
+
+  .chat-header {
+    padding: $space-md $space-lg;
+
+    h3 {
+      font-size: 16px;
+    }
+  }
+
+  .artifacts-header {
+    padding: $space-md $space-lg;
+
+    h3 {
+      font-size: 16px;
+    }
+  }
+}
+
+// Tablet Styles
+@media (min-width: $breakpoint-mobile + 1px) and (max-width: $breakpoint-tablet) {
+  .sidebar {
+    width: 240px;
+  }
+
+  .feature-highlights {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .message-content {
+    max-width: 80%;
+  }
+
+  .artifacts-panel {
+    width: 50vw;
+    min-width: 320px;
+  }
+}
+
+// Large Desktop Styles
+@media (min-width: 1440px) {
+  .app-container {
+    max-width: none;
+  }
+
+  .welcome-message {
+    max-width: 700px;
+  }
+
+  .message-content {
+    max-width: 70%;
+  }
+
+  .artifacts-panel {
+    width: 480px;
+  }
+}
+
+// Ultra-wide Screens
+@media (min-width: 1920px) {
+  .message-content {
+    max-width: 60%;
+  }
+
+  .chat-messages {
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  .welcome-message {
+    max-width: 800px;
+  }
+}
+
+// Portrait Orientation on Mobile
+@media (max-width: $breakpoint-mobile) and (orientation: portrait) {
+  .artifacts-panel {
+    height: 100vh;
+  }
+
+  .playground-editors {
+    height: 120px;
+  }
+}
+
+// Landscape Orientation on Mobile
+@media (max-width: $breakpoint-mobile) and (orientation: landscape) {
+  .welcome-message {
+    padding: 20px $space-lg;
+  }
+
+  .playground-editors {
+    height: 100px;
+  }
+
+  .chat-messages {
+    padding: $space-md;
+  }
+}
+
+// High DPI Displays
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  .welcome-icon,
+  .message-avatar {
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
+  }
+}
+
+// Reduced Motion
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .typing-dots span {
+    animation: none;
+  }
+
+  .message {
+    animation: none;
+  }
+
+  .modal-content {
+    animation: none;
+  }
+
+  .toast {
+    animation: none;
+  }
+}

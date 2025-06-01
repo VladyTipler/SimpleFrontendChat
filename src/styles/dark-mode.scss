@@ -1,0 +1,342 @@
+@use 'variables' as *;
+
+// Dark mode support
+@media (prefers-color-scheme: dark) {
+  :root {
+    // Override color variables for dark mode
+    --bg-page: #{$dark-bg-page};
+    --bg-sidebar: #{$dark-bg-sidebar};
+    --bg-main: #{$dark-bg-main};
+    --bg-chat: #{$dark-bg-chat};
+    --bg-message-user: #{$dark-bg-message-user};
+    --bg-message-assistant: #{$dark-bg-message-assistant};
+    --bg-input: #{$dark-bg-input};
+    --bg-code: #{$dark-bg-code};
+    --bg-artifact: #{$dark-bg-artifact};
+
+    --text-primary: #{$dark-text-primary};
+    --text-secondary: #{$dark-text-secondary};
+    --text-tertiary: #{$dark-text-tertiary};
+    --text-muted: #{$dark-text-muted};
+    --text-user: #{$dark-text-user};
+    --text-assistant: #{$dark-text-assistant};
+
+    --border-light: #{$dark-border-light};
+    --border-medium: #{$dark-border-medium};
+  }
+
+  body {
+    background: $dark-bg-page;
+    color: $dark-text-primary;
+  }
+
+  // Keep preview frames and playground always light for better readability
+  .preview-frame,
+  .playground-frame {
+    background: #ffffff !important;
+    border-radius: $radius-sm;
+  }
+
+  .image-preview {
+    background: $dark-bg-code;
+  }
+
+  // Keep markdown preview light in dark mode for better readability
+  .markdown-preview {
+    background: #ffffff !important;
+    color: #333 !important;
+    border-radius: $radius-sm;
+  }
+
+  // Dark mode code editor improvements
+  .code-editor {
+    background: $dark-bg-code;
+
+    code {
+      color: $dark-text-primary;
+    }
+  }
+
+  // Dark mode Prism.js theme
+  .code-editor {
+    .token.comment,
+    .token.prolog,
+    .token.doctype,
+    .token.cdata {
+      color: #8b949e;
+    }
+
+    .token.punctuation {
+      color: #c9d1d9;
+    }
+
+    .token.property,
+    .token.tag,
+    .token.boolean,
+    .token.number,
+    .token.constant,
+    .token.symbol,
+    .token.deleted {
+      color: #79c0ff;
+    }
+
+    .token.selector,
+    .token.attr-name,
+    .token.string,
+    .token.char,
+    .token.builtin,
+    .token.inserted {
+      color: #a5d6ff;
+    }
+
+    .token.operator,
+    .token.entity,
+    .token.url,
+    .language-css .token.string,
+    .style .token.string {
+      color: #ff7b72;
+    }
+
+    .token.atrule,
+    .token.attr-value,
+    .token.keyword {
+      color: #ff7b72;
+    }
+
+    .token.function,
+    .token.class-name {
+      color: #d2a8ff;
+    }
+
+    .token.regex,
+    .token.important,
+    .token.variable {
+      color: #ffa657;
+    }
+  }
+
+  // Dark mode scrollbar
+  ::-webkit-scrollbar-thumb {
+    background: $dark-border-medium;
+    
+    &:hover {
+      background: $dark-text-tertiary;
+    }
+  }
+
+  // Dark mode selection
+  ::selection {
+    background: rgba($color-primary, 0.3);
+    color: $dark-text-primary;
+  }
+
+  // Dark mode specific component overrides
+  .welcome-message {
+    .feature {
+      background: $dark-bg-code;
+      border-color: $dark-border-light;
+
+      &:hover {
+        border-color: $color-primary;
+      }
+    }
+  }
+
+  .artifact-container {
+    background: $dark-bg-artifact;
+    border-color: $dark-border-light;
+  }
+
+  .artifact-header {
+    background: $dark-bg-code;
+    border-color: $dark-border-light;
+  }
+
+  .message {
+    &.user {
+      .message-content {
+        background: $dark-bg-message-user;
+        color: $dark-text-user;
+      }
+
+      .file-preview {
+        background: rgba(255, 255, 255, 0.1);
+        border-color: rgba(255, 255, 255, 0.2);
+      }
+    }
+
+    &.assistant {
+      .message-content {
+        background: $dark-bg-message-assistant;
+        color: $dark-text-assistant;
+      }
+    }
+  }
+
+  .file-preview {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.1);
+  }
+
+  .uploaded-file {
+    background: $dark-bg-code;
+    border-color: $dark-border-light;
+    color: $dark-text-secondary;
+  }
+
+  .input-wrapper {
+    background: $dark-bg-main;
+    border-color: $dark-border-light;
+
+    &:focus-within {
+      border-color: $color-primary;
+    }
+  }
+
+  textarea, input, select {
+    background: $dark-bg-main;
+    color: $dark-text-primary;
+    border-color: $dark-border-light;
+
+    &::placeholder {
+      color: $dark-text-muted;
+    }
+
+    &:focus {
+      border-color: $color-primary;
+    }
+  }
+
+  .modal-content {
+    background: $dark-bg-main;
+  }
+
+  .modal-header,
+  .modal-footer {
+    border-color: $dark-border-light;
+  }
+
+  .modal-footer {
+    background: $dark-bg-code;
+  }
+
+  .toast {
+    background: $dark-bg-main;
+    border-color: $dark-border-light;
+
+    span {
+      color: $dark-text-primary;
+    }
+  }
+
+  .sidebar-toggle-desktop {
+    background: $dark-bg-main;
+    border-color: $dark-border-light;
+    color: $dark-text-tertiary;
+
+    &:hover {
+      background: $color-primary;
+      color: white;
+      border-color: $color-primary;
+    }
+  }
+
+  // Dark mode form elements
+  .checkbox-label input[type="checkbox"] {
+    background: $dark-bg-main;
+    border-color: $dark-border-light;
+  }
+
+  .form-help {
+    color: $dark-text-tertiary;
+  }
+
+  .temperature-value {
+    color: $color-primary;
+  }
+
+  // Dark mode code highlighting in artifacts
+  .artifact-preview {
+    background: $dark-bg-code;
+
+    pre {
+      background: transparent;
+    }
+
+    code {
+      color: $dark-text-primary;
+    }
+  }
+
+  // Dark mode playground
+  .playground-editor textarea {
+    background: $dark-bg-code;
+    color: $dark-text-primary;
+
+    &::placeholder {
+      color: $dark-text-muted;
+    }
+  }
+
+  .playground-tabs,
+  .artifacts-tabs {
+    background: $dark-bg-main;
+  }
+
+  .playground-tab-btn,
+  .tab-btn {
+    color: $dark-text-secondary;
+
+    &:hover {
+      color: $dark-text-primary;
+      background: rgba(79, 70, 229, 0.1);
+    }
+
+    &.active {
+      color: $color-primary;
+      background: $dark-bg-main;
+    }
+  }
+
+  .code-header {
+    background: $dark-bg-code;
+  }
+
+  .language-select {
+    background: $dark-bg-main;
+    border-color: $dark-border-light;
+    color: $dark-text-primary;
+  }
+
+  .action-btn {
+    background: $dark-bg-main;
+    border-color: $dark-border-light;
+    color: $dark-text-secondary;
+
+    &:hover {
+      background: $color-primary;
+      color: white;
+      border-color: $color-primary;
+    }
+  }
+
+  .playground-controls {
+    background: $dark-bg-main;
+  }
+
+  .clear-btn {
+    background: $dark-bg-main;
+    border-color: $dark-border-light;
+    color: $dark-text-secondary;
+  }
+}
+
+// Force dark mode (class-based)
+.dark-mode {
+  // Apply all the same styles as the media query
+  // This allows for manual dark mode toggle if needed
+  background: $dark-bg-page;
+  color: $dark-text-primary;
+
+  // ... (same styles as above)
+}
