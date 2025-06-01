@@ -8,19 +8,7 @@
             :class="`toast-${toast.type}`"
         >
             <i :class="getToastIcon(toast.type)"></i>
-            <div class="toast-content">
-                <span class="toast-message">{{ toast.message }}</span>
-
-                <!-- Show diagnostics button for network errors on mobile -->
-                <button
-                    v-if="isNetworkError(toast) && isMobileDevice"
-                    @click="$emit('open-diagnostics')"
-                    class="diagnostics-btn"
-                >
-                    <i class="fas fa-tools"></i> Диагностика
-                </button>
-            </div>
-
+            <span class="toast-message">{{ toast.message }}</span>
             <button class="toast-close" @click="$emit('remove', toast.id)">
                 <i class="fas fa-times"></i>
             </button>
@@ -29,17 +17,11 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
-
 defineProps({
     toasts: Array
 })
 
-defineEmits(['remove', 'open-diagnostics'])
-
-const isMobileDevice = computed(() => {
-    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
-})
+defineEmits(['remove'])
 
 const getToastIcon = (type) => {
     const icons = {
@@ -49,22 +31,6 @@ const getToastIcon = (type) => {
         info: 'fas fa-info-circle'
     }
     return icons[type] || 'fas fa-info-circle'
-}
-
-const isNetworkError = (toast) => {
-    const networkKeywords = [
-        'Failed to fetch',
-        'Network',
-        'CORS',
-        'сети',
-        'подключения',
-        'мобильном устройстве'
-    ]
-
-    return toast.type === 'error' &&
-        networkKeywords.some(keyword =>
-            toast.message.toLowerCase().includes(keyword.toLowerCase())
-        )
 }
 </script>
 
@@ -87,7 +53,7 @@ const isNetworkError = (toast) => {
 
 .toast {
     display: flex;
-    align-items: flex-start;
+    align-items: center;
     gap: $space-md;
     padding: $space-md $space-lg;
     border-radius: $radius-md;
@@ -135,44 +101,12 @@ const isNetworkError = (toast) => {
     }
 }
 
-.toast-content {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    gap: $space-sm;
-}
-
 .toast-message {
+    flex: 1;
     color: $text-primary;
     font-size: 14px;
     line-height: 1.4;
     white-space: pre-line;
-}
-
-.diagnostics-btn {
-    background: $color-primary;
-    border: none;
-    color: white;
-    padding: $space-xs $space-sm;
-    border-radius: $radius-sm;
-    cursor: pointer;
-    font-size: 12px;
-    font-weight: 500;
-    transition: all $transition-fast;
-    display: inline-flex;
-    align-items: center;
-    gap: $space-xs;
-    align-self: flex-start;
-    margin-top: $space-xs;
-
-    &:hover {
-        background: $color-primary-dark;
-        transform: translateY(-1px);
-    }
-
-    &:active {
-        transform: translateY(0);
-    }
 }
 
 .toast-close {
@@ -183,7 +117,11 @@ const isNetworkError = (toast) => {
     padding: $space-xs;
     border-radius: $radius-sm;
     transition: all $transition-fast;
-    flex-shrink: 0;
+    min-width: 24px;
+    min-height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 
     &:hover {
         background: $bg-code;

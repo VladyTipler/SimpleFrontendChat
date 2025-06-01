@@ -60,18 +60,10 @@
             @save="saveSettings"
         />
 
-        <!-- Network Diagnostics -->
-        <NetworkDiagnostics
-            :webhook-url="settings.webhookUrl"
-            :show="showDiagnostics"
-            @close="closeDiagnostics"
-        />
-
         <!-- Toast notifications -->
         <ToastContainer
             :toasts="toasts"
             @remove="removeToast"
-            @open-diagnostics="openDiagnostics"
         />
 
         <!-- Theme Switcher -->
@@ -96,7 +88,6 @@ import ArtifactsPanel from './components/ArtifactsPanel.vue'
 import SettingsModal from './components/SettingsModal.vue'
 import ToastContainer from './components/ToastContainer.vue'
 import ThemeSwitcher from './components/ThemeSwitcher.vue'
-import NetworkDiagnostics from './components/NetworkDiagnostics.vue'
 import { useChatStore } from './composables/useChatStore'
 import { useArtifacts } from './composables/useArtifacts'
 import { useToasts } from './composables/useToasts'
@@ -146,7 +137,6 @@ const isTyping = ref(false)
 const isResizing = ref(false)
 const uploadedFiles = ref([])
 const settingsOpen = ref(false)
-const showDiagnostics = ref(false)
 
 // Settings
 const settings = useStorage('aiChatSettings', {
@@ -176,41 +166,7 @@ const closeSidebar = () => {
 }
 
 const toggleSidebarMobile = () => {
-    console.log('Toggle sidebar mobile called, current state:', sidebarOpen.value)
     sidebarOpen.value = !sidebarOpen.value
-    console.log('New sidebar state:', sidebarOpen.value)
-}
-
-// Diagnostics
-const openDiagnostics = () => {
-    showDiagnostics.value = true
-}
-
-const closeDiagnostics = () => {
-    showDiagnostics.value = false
-}
-
-// Enhanced error handling
-const handleNetworkError = (error) => {
-    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
-    const isNetworkError = error.message.includes('Failed to fetch') ||
-        error.message.includes('Network') ||
-        error.message.includes('CORS')
-
-    let toastMessage = error.message
-    let toastType = 'error'
-
-    if (isNetworkError && isMobile) {
-        toastMessage = '🔧 Ошибка сети на мобильном устройстве'
-        toastType = 'error'
-
-        // Show diagnostics automatically on mobile network errors
-        setTimeout(() => {
-            openDiagnostics()
-        }, 1000)
-    }
-
-    showToast(toastMessage, toastType)
 }
 
 // Message handling
@@ -252,8 +208,7 @@ const sendMessage = async (content, files) => {
         }
     } catch (error) {
         isTyping.value = false
-        console.error('Send message error:', error)
-        handleNetworkError(error)
+        showToast('Ошибка при отправке сообщения: ' + error.message, 'error')
     }
 }
 
@@ -342,37 +297,6 @@ onMounted(() => {
     @media (max-width: $breakpoint-mobile) {
         top: 12px;
         right: 12px;
-    }
-}
-
-// Mobile sidebar overlay
-@media (max-width: $breakpoint-mobile) {
-    .app-container {
-        position: relative;
-        overflow: hidden;
-    }
-
-    // Add overlay when sidebar is open on mobile
-    .app-container::before {
-        content: '';
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0, 0, 0, 0.5);
-        z-index: 999;
-        opacity: 0;
-        visibility: hidden;
-        transition: all $transition-normal;
-        pointer-events: none;
-    }
-
-    // Show overlay when sidebar is open
-    .app-container:has(.sidebar.open)::before {
-        opacity: 1;
-        visibility: visible;
-        pointer-events: all;
     }
 }
 </style>

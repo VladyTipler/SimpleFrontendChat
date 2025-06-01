@@ -217,11 +217,12 @@ watch(
         display: flex;
     }
 
-    // Ensure touch events work properly
-    touch-action: manipulation;
-    -webkit-touch-callout: none;
-    -webkit-user-select: none;
-    user-select: none;
+    & { // Ensure touch events work properly
+        touch-action: manipulation;
+        -webkit-touch-callout: none;
+        -webkit-user-select: none;
+        user-select: none;
+    }
 }
 
 .chat-messages {
@@ -234,9 +235,8 @@ watch(
     -webkit-overflow-scrolling: touch;
 
     @media (max-width: $breakpoint-mobile) {
-        padding: $space-lg;
         // Добавляем отступ снизу чтобы контент не скрывался за полем ввода
-        padding-bottom: calc($space-2xl + env(safe-area-inset-bottom, 80px));
+        padding: $space-lg $space-lg calc($space-2xl + env(safe-area-inset-bottom, 80px));
     }
 }
 
