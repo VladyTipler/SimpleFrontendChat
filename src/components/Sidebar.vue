@@ -105,7 +105,7 @@ const formatDate = (date) => {
     background: $bg-sidebar;
     display: flex;
     flex-direction: column;
-    transition: width $transition-normal, margin-left $transition-normal;
+    transition: width $transition-normal, margin-left $transition-normal, transform $transition-normal;
     z-index: 1000;
     border-right: 1px solid $border-light;
     box-shadow: $shadow-sm;
@@ -318,9 +318,14 @@ const formatDate = (date) => {
 }
 
 .sidebar-footer {
-    padding-top: $space-lg;
+    //padding-top: $space-lg;
     border-top: 1px solid $border-light;
     flex-shrink: 0;
+    height: 95px;
+    align-items: center;
+    display: flex;
+    padding-bottom: calc(16px + env(safe-area-inset-bottom, 20px));
+    padding-top: 16px;
 }
 
 .settings-btn {

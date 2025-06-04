@@ -198,7 +198,6 @@ watch(
     z-index: 10;
     min-width: 44px; // Minimum touch target size
     min-height: 44px;
-    display: flex;
     align-items: center;
     justify-content: center;
 
